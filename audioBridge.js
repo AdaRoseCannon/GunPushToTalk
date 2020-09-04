@@ -1,36 +1,39 @@
-var audioBridge = (function () {
+import { state } from "./state.js";
+import audioReceiver from "./audioReceiver.js";
 
-  var lastTimeStamp = new Date().getTime();
-  var initial = true;
+export default (function () {
+	let lastTimeStamp = new Date().getTime();
+	let initial = true;
 
-  function init() {
-    gunDB.get('audio').get(room).on(function (data, room) {
+	function init() {
+		state.gunDB
+			.get("audio")
+			.get(state.room)
+			.on(function (data /*room*/) {
+				if (initial) {
+					initial = false;
+					return;
+				}
 
-      if (initial) {
-        initial = false;
-        return;
-      }
+				if (lastTimeStamp == data.timestamp) {
+					return;
+				}
+				lastTimeStamp = data.timestamp;
 
-      if (lastTimeStamp == data.timestamp) {
-        return;
-      }
-      lastTimeStamp = data.timestamp;
+				if (data.user == state.gunDB._.opt.pid) {
+					return;
+				}
 
-      if (data.user == gunDB._.opt.pid) {
-        return;
-      }
+				audioReceiver.receive(data);
+			});
+	}
 
-      audioReceiver.receive(data)
-    })
-  }
+	function sendToGun(data) {
+		state.gunDB.get("audio").get(state.room).put(data);
+	}
 
-  function sendToGun(data) {
-    gunDB.get('audio').get(room).put(data);
-  }
-
-  return {
-    init: init,
-    send: sendToGun
-  };
-
+	return {
+		init: init,
+		send: sendToGun,
+	};
 })();
